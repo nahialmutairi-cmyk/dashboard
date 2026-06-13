@@ -72,6 +72,8 @@ export const handler: Handler = async (event, context) => {
         visits,
         clicks,
         status: client.is_active ? 'active' : 'inactive',
+        country_code: client.country_code || '+965',
+        phone_number: client.phone_number || '',
         platforms: mapPlatforms(client),
         customLinks,
         isPublicIndexed: true

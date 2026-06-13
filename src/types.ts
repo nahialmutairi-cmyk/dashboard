@@ -27,4 +27,6 @@ export interface Client {
   platforms: PlatformLink[];
   customLinks: CustomLink[];
   isPublicIndexed: boolean;
+  country_code?: string;
+  phone_number?: string;
 }

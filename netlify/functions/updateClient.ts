@@ -72,8 +72,8 @@ export const handler: Handler = async (event, context) => {
       INSERT INTO clients (
         id, name, slug, category, bio, profile_image_url, banner_image_url,
         phone, whatsapp, email, website, google_maps, instagram, twitter,
-        tiktok, snapchat, youtube, linkedin, facebook, telegram, is_active, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21, NOW())
+        tiktok, snapchat, youtube, linkedin, facebook, telegram, country_code, phone_number, is_active, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, NOW())
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         slug = EXCLUDED.slug,
@@ -94,6 +94,8 @@ export const handler: Handler = async (event, context) => {
         linkedin = EXCLUDED.linkedin,
         facebook = EXCLUDED.facebook,
         telegram = EXCLUDED.telegram,
+        country_code = EXCLUDED.country_code,
+        phone_number = EXCLUDED.phone_number,
         is_active = EXCLUDED.is_active,
         updated_at = NOW()
     `, [
@@ -117,6 +119,8 @@ export const handler: Handler = async (event, context) => {
       pValues['linkedin'] || '',
       pValues['facebook'] || '',
       pValues['telegram'] || '',
+      clientData.country_code || '+965',
+      clientData.phone_number || '',
       isActive
     ]);
 

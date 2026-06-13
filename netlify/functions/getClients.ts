@@ -38,6 +38,8 @@ export const handler: Handler = async (event, context) => {
         visits: (visitsMap[c.id] || 0) + (c.id === 'digital-creator' ? 12400-240 : c.id === 'real-estate' ? 45800-458 : c.id === 'tech-startup' ? 2400-24 : 0),
         clicks: (clicksMap[c.id] || 0) + (c.id === 'digital-creator' ? 3200-32 : c.id === 'real-estate' ? 1100-11 : c.id === 'tech-startup' ? 842-8 : 0),
         status: c.is_active ? 'active' : 'inactive',
+        country_code: c.country_code || '+965',
+        phone_number: c.phone_number || '',
         platforms: mapPlatforms(c),
         customLinks,
         isPublicIndexed: true

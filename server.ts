@@ -45,6 +45,7 @@ async function handleGetClients(req: any, res: any) {
 
       return {
         id: c.id,
+        slug: c.slug || '',
         name: c.name,
         category: c.category || '',
         bio: c.bio || '',
@@ -53,6 +54,8 @@ async function handleGetClients(req: any, res: any) {
         visits: (visitsMap[c.id] || 0) + (c.id === 'digital-creator' ? 12400-240 : c.id === 'real-estate' ? 45800-458 : c.id === 'tech-startup' ? 2400-24 : 0), // pad with original metrics
         clicks: (clicksMap[c.id] || 0) + (c.id === 'digital-creator' ? 3200-32 : c.id === 'real-estate' ? 1100-11 : c.id === 'tech-startup' ? 842-8 : 0),
         status: c.is_active ? 'active' : 'inactive',
+        country_code: c.country_code || '+965',
+        phone_number: c.phone_number || '',
         platforms: mapPlatforms(c),
         customLinks,
         isPublicIndexed: true
@@ -111,6 +114,7 @@ async function handleGetPublicProfileBySlug(req: any, res: any) {
 
     res.json({
       id: client.id,
+      slug: client.slug || '',
       name: client.name,
       category: client.category || '',
       bio: client.bio || '',
@@ -119,6 +123,8 @@ async function handleGetPublicProfileBySlug(req: any, res: any) {
       visits,
       clicks,
       status: client.is_active ? 'active' : 'inactive',
+      country_code: client.country_code || '+965',
+      phone_number: client.phone_number || '',
       platforms: mapPlatforms(client),
       customLinks,
       isPublicIndexed: true
@@ -169,8 +175,8 @@ async function handleUpsertClient(req: any, res: any) {
       INSERT INTO clients (
         id, name, slug, category, bio, profile_image_url, banner_image_url,
         phone, whatsapp, email, website, google_maps, instagram, twitter,
-        tiktok, snapchat, youtube, linkedin, facebook, telegram, is_active, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21, NOW())
+        tiktok, snapchat, youtube, linkedin, facebook, telegram, country_code, phone_number, is_active, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, NOW())
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         slug = EXCLUDED.slug,
@@ -191,6 +197,8 @@ async function handleUpsertClient(req: any, res: any) {
         linkedin = EXCLUDED.linkedin,
         facebook = EXCLUDED.facebook,
         telegram = EXCLUDED.telegram,
+        country_code = EXCLUDED.country_code,
+        phone_number = EXCLUDED.phone_number,
         is_active = EXCLUDED.is_active,
         updated_at = NOW()
     `, [
@@ -214,6 +222,8 @@ async function handleUpsertClient(req: any, res: any) {
       pValues['linkedin'] || '',
       pValues['facebook'] || '',
       pValues['telegram'] || '',
+      clientData.country_code || '+965',
+      clientData.phone_number || '',
       isActive
     ]);
 

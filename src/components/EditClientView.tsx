@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Save, Trash2, Plus, Sparkles, AlertTriangle, Link as LinkIcon, Settings, ToggleLeft, ToggleRight, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Trash2, Plus, Sparkles, AlertTriangle, Link as LinkIcon, Settings, ToggleLeft, ToggleRight, FileText, Image as ImageIcon, Search } from 'lucide-react';
 import { Client, PlatformLink, CustomLink } from '../types';
 import { translations } from '../translations';
 import ProfilePreviewView from './ProfilePreviewView';
+
+const COUNTRIES_LIST = [
+  { code: '+965', flag: '🇰🇼', nameAr: 'الكويت', nameEn: 'Kuwait' },
+  { code: '+966', flag: '🇸🇦', nameAr: 'السعودية', nameEn: 'Saudi Arabia' },
+  { code: '+971', flag: '🇦🇪', nameAr: 'الإمارات', nameEn: 'UAE' },
+  { code: '+974', flag: '🇶🇦', nameAr: 'قطر', nameEn: 'Qatar' },
+  { code: '+973', flag: '🇧🇭', nameAr: 'البحرين', nameEn: 'Bahrain' },
+  { code: '+968', flag: '🇴🇲', nameAr: 'عمان', nameEn: 'Oman' },
+  { code: '+20', flag: '🇪🇬', nameAr: 'مصر', nameEn: 'Egypt' },
+  { code: '+1', flag: '🇺🇸', nameAr: 'الولايات المتحدة', nameEn: 'United States' },
+  { code: '+44', flag: '🇬🇧', nameAr: 'المملكة المتحدة', nameEn: 'United Kingdom' }
+];
+
 // Base64 file converter utility
 const convertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -31,6 +44,11 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
   const [isPublicIndexed, setIsPublicIndexed] = useState(client.isPublicIndexed);
   const [platforms, setPlatforms] = useState<PlatformLink[]>([...client.platforms]);
   const [customLinks, setCustomLinks] = useState<CustomLink[]>([...client.customLinks]);
+  const [countryCode, setCountryCode] = useState(client.country_code || '+965');
+  const [phoneNumber, setPhoneNumber] = useState(client.phone_number || '');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
@@ -58,7 +76,9 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
     banner,
     isPublicIndexed,
     platforms,
-    customLinks
+    customLinks,
+    country_code: countryCode,
+    phone_number: phoneNumber
   };
 
   const handlePlatformToggle = (platformId: string) => {
@@ -130,6 +150,7 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
   const handleSaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSlugError(null);
+    setPhoneError(null);
 
     const finalSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
     if (!finalSlug) {
@@ -148,6 +169,23 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
       return;
     }
 
+    // Phone number field validation
+    const cleanedPhone = phoneNumber.replace(/[^0-9]/g, '');
+    if (!cleanedPhone) {
+      setPhoneError(isRtl ? 'رقم الهاتف مطلوب.' : 'Phone number is required.');
+      return;
+    }
+    if (cleanedPhone.length < 5) {
+      setPhoneError(isRtl ? 'رقم الهاتف غير صالح وقصير جداً.' : 'Phone number is too short.');
+      return;
+    }
+
+    // Country code validation
+    if (!countryCode || !countryCode.startsWith('+') || countryCode.length < 2) {
+      setPhoneError(isRtl ? 'رمز الدولة غير صالح. مثال: +965' : 'Invalid country code. e.g. +965');
+      return;
+    }
+
     // Validate slug uniqueness before saving!
     try {
       const response = await fetch(`/api/getPublicProfileBySlug?slug=${finalSlug}`);
@@ -162,9 +200,22 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
       // Ignore network errors or offline
     }
 
+    const updatedPlatforms = platforms.map(p => {
+      if (p.id === 'phone') {
+        return { ...p, value: `${countryCode}${cleanedPhone}` };
+      }
+      if (p.id === 'whatsapp') {
+        return { ...p, value: `https://wa.me/${countryCode.replace('+', '')}${cleanedPhone}` };
+      }
+      return p;
+    });
+
     onSave({
       ...currentModifiedClient,
-      slug: finalSlug
+      slug: finalSlug,
+      country_code: countryCode,
+      phone_number: cleanedPhone,
+      platforms: updatedPlatforms
     });
   };
 
@@ -324,6 +375,104 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
                 onChange={(e) => setBio(e.target.value)}
                 className="w-full bg-[#0e0e0e] border border-zinc-800 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500 text-white resize-none"
               />
+            </div>
+
+            {/* Country Code & Phone Number Admin Block */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-900/40 p-4 border border-zinc-850 rounded-xl relative z-30">
+              <div className="relative">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                  {isRtl ? 'مفتاح الدولة والرمز' : 'Country Flag & Code'}
+                </label>
+                <div className="flex gap-2 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                    className="bg-[#0e0e0e] border border-zinc-800 hover:border-zinc-700 transition-all rounded-lg px-3.5 py-2.5 text-sm text-white flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer"
+                  >
+                    <span className="text-base">{COUNTRIES_LIST.find(c => c.code === countryCode)?.flag || '🌍'}</span>
+                    <span className="font-semibold font-mono">{countryCode}</span>
+                    <span className="text-[10px] text-zinc-500">▼</span>
+                  </button>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+965"
+                    value={countryCode}
+                    onChange={(e) => {
+                      let code = e.target.value.trim();
+                      if (code && !code.startsWith('+')) {
+                        code = '+' + code.replace(/[^0-9]/g, '');
+                      } else if (code) {
+                        code = '+' + code.substring(1).replace(/[^0-9]/g, '');
+                      }
+                      setCountryCode(code);
+                    }}
+                    className="w-full bg-[#0e0e0e] border border-zinc-800 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500 text-white font-mono"
+                  />
+                  
+                  {/* Searchable dropdown menu */}
+                  {showCountryDropdown && (
+                    <div className="absolute top-12 left-0 z-50 w-64 bg-[#121212] border border-zinc-800 rounded-xl shadow-2xl p-2.5 space-y-2">
+                      <div className="relative flex items-center bg-[#070707] border border-zinc-850 rounded-lg px-2 py-1.5">
+                        <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0 mr-1.5" />
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder={isRtl ? "ابحث عن دولة..." : "Search country..."}
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-zinc-650"
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {COUNTRIES_LIST.filter(c => 
+                          c.code.includes(countrySearch) || 
+                          c.nameEn.toLowerCase().includes(countrySearch.toLowerCase()) || 
+                          c.nameAr.includes(countrySearch)
+                        ).map((c) => (
+                          <button
+                            key={c.code}
+                            type="button"
+                            onClick={() => {
+                              setCountryCode(c.code);
+                              setShowCountryDropdown(false);
+                              setCountrySearch('');
+                            }}
+                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-850 text-left cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{c.flag}</span>
+                              <span className="text-xs text-zinc-300 font-semibold">{isRtl ? c.nameAr : c.nameEn}</span>
+                            </div>
+                            <span className="text-xs font-mono text-zinc-500 font-bold">{c.code}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                  {isRtl ? 'رقم الهاتف (أرقام فقط)' : 'Phone Number (Digits only)'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="60000000"
+                  value={phoneNumber}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                    setPhoneNumber(cleaned);
+                    setPhoneError(null);
+                  }}
+                  className="w-full bg-[#0e0e0e] border border-zinc-800 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500 text-white font-mono"
+                />
+                {phoneError && (
+                  <p className="text-[10px] text-red-400 font-semibold mt-1">{phoneError}</p>
+                )}
+              </div>
             </div>
 
             {/* Custom URL inputs */}

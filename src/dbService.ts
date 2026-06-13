@@ -93,6 +93,22 @@ export async function ensureDatabaseSetup(): Promise<pg.Pool> {
           );
         `);
         console.log('Database tables successfully verified/created.');
+
+        // Run migrations for separate phone number fields
+        await client.query(`
+          ALTER TABLE clients ADD COLUMN IF NOT EXISTS country_code VARCHAR(10) DEFAULT '+965';
+          ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+        `);
+
+        // Migrate existing phone strings into digits-only phone_number
+        await client.query(`
+          UPDATE clients 
+          SET phone_number = REGEXP_REPLACE(phone, '[^0-9]', '', 'g'),
+              country_code = '+965'
+          WHERE (phone_number IS NULL OR phone_number = '') 
+            AND phone IS NOT NULL 
+            AND phone <> '';
+        `);
         
         // Let's seed demo profiles if empty
         const countRes = await client.query('SELECT COUNT(*) FROM clients');
@@ -152,8 +168,9 @@ export async function ensureDatabaseSetup(): Promise<pg.Pool> {
 }
 
 export function mapPlatforms(item: any): any[] {
+  const combinedPhone = item.phone_number ? `${item.country_code || '+965'}${item.phone_number}` : (item.phone || '');
   return [
-    { id: 'phone', name: 'Phone', icon: 'Phone', placeholder: 'Direct mobile number', enabled: !!item.phone, value: item.phone || '' },
+    { id: 'phone', name: 'Phone', icon: 'Phone', placeholder: 'Direct mobile number', enabled: !!item.phone_number || !!item.phone, value: combinedPhone },
     { id: 'whatsapp', name: 'WhatsApp', icon: 'MessageCircle', placeholder: 'WhatsApp number or link', enabled: !!item.whatsapp, value: item.whatsapp || '' },
     { id: 'email', name: 'Email', icon: 'Mail', placeholder: 'Contact email address', enabled: !!item.email, value: item.email || '' },
     { id: 'website', name: 'Website', icon: 'Globe', placeholder: 'Official website address', enabled: !!item.website, value: item.website || '' },
