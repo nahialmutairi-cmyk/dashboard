@@ -15,6 +15,7 @@ export interface CustomLink {
 
 export interface Client {
   id: string;
+  slug: string;
   name: string;
   category: string;
   bio: string;

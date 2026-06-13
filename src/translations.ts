@@ -54,6 +54,10 @@ export interface TranslationSet {
   simulatedClicks: string;
   cancelBtn: string;
   createAccountBtn: string;
+  slugLabel: string;
+  slugPlaceholder: string;
+  slugErrorFormat: string;
+  slugErrorExists: string;
 
   // Edit Client Screen
   editClientTitle: string;
@@ -175,6 +179,10 @@ export const translations: Record<'en' | 'ar', TranslationSet> = {
     simulatedClicks: "Simulated Clicks",
     cancelBtn: "Cancel",
     createAccountBtn: "Create Account",
+    slugLabel: "Username / Public Link Slug",
+    slugPlaceholder: "e.g. nahi-almutairi",
+    slugErrorFormat: "Username/slug must only contain lowercase English letters, numbers, and hyphens.",
+    slugErrorExists: "This username is already used.",
 
     editClientTitle: "Edit Client",
     editClientSub: "Modify Campaign links & public branding in real-time",
@@ -288,6 +296,10 @@ export const translations: Record<'en' | 'ar', TranslationSet> = {
     simulatedClicks: "النقرات الافتراضية",
     cancelBtn: "إلغاء",
     createAccountBtn: "إنشاء الحساب",
+    slugLabel: "اسم المستخدم / رابط الصفحة العامة",
+    slugPlaceholder: "مثال: nahi-almutairi",
+    slugErrorFormat: "يجب أن يحتوي اسم المستخدم فقط على الأحرف الإنجليزية الصغيرة والأرقام والشرطة (-).",
+    slugErrorExists: "اسم المستخدم هذا مستخدم بالفعل.",
 
     editClientTitle: "تعديل بيانات العميل",
     editClientSub: "تحديث روابط الحملة الإعلانية والهوية البصرية فورياً",

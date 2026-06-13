@@ -38,7 +38,24 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    const slug = clientData.id.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+    const slug = (clientData.slug || clientData.id).trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (!slug || slug === '-') {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Username/slug is required and cannot be empty or only "-".' })
+      };
+    }
+
+    // Check slug uniqueness across existing client base
+    const existingClientWithSlug = await pool.query('SELECT id FROM clients WHERE slug = $1', [slug]);
+    if (existingClientWithSlug.rows.length > 0 && existingClientWithSlug.rows[0].id !== clientData.id) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'This username is already used.' })
+      };
+    }
     const pValues: Record<string, string> = {};
     if (clientData.platforms) {
       clientData.platforms.forEach((p: any) => {

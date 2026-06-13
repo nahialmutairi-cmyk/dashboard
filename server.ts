@@ -142,18 +142,29 @@ async function handleUpsertClient(req: any, res: any) {
     return res.status(400).json({ error: 'Missing client id or name parameters.' });
   }
 
-  const slug = clientData.id.toLowerCase().replace(/[^a-z0-9-_]/g, '');
-  const pValues: Record<string, string> = {};
-  if (clientData.platforms) {
-    clientData.platforms.forEach((p: any) => {
-      pValues[p.id] = p.enabled ? p.value : '';
-    });
+  const slug = (clientData.slug || clientData.id).trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  if (!slug || slug === '-') {
+    return res.status(400).json({ error: 'Username/slug is required and cannot be empty or only "-".' });
   }
-
-  const isActive = clientData.status === 'active';
 
   try {
     const pool = await ensureDatabaseSetup();
+
+    // Check slug uniqueness across existing clients
+    const existingClientWithSlug = await pool.query('SELECT id FROM clients WHERE slug = $1', [slug]);
+    if (existingClientWithSlug.rows.length > 0 && existingClientWithSlug.rows[0].id !== clientData.id) {
+      return res.status(400).json({ error: 'This username is already used.' });
+    }
+
+    const pValues: Record<string, string> = {};
+    if (clientData.platforms) {
+      clientData.platforms.forEach((p: any) => {
+        pValues[p.id] = p.enabled ? p.value : '';
+      });
+    }
+
+    const isActive = clientData.status === 'active';
+
     await pool.query(`
       INSERT INTO clients (
         id, name, slug, category, bio, profile_image_url, banner_image_url,

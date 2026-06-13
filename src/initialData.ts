@@ -3,6 +3,7 @@ import { Client } from './types';
 export const INITIAL_CLIENTS: Client[] = [
   {
     id: 'digital-creator',
+    slug: 'digital-creator',
     name: 'Sarah Jenkins',
     category: 'Creative Director & Content Strategist',
     bio: 'Creative Director & Content Strategist based in London. Helping brands reach 500k+ tech enthusiasts daily.',
@@ -28,6 +29,7 @@ export const INITIAL_CLIENTS: Client[] = [
   },
   {
     id: 'real-estate',
+    slug: 'real-estate',
     name: 'Real Estate Pro',
     category: 'Luxury Property Showcase',
     bio: 'Bespoke real estate consultancy specializing in architectural masterpieces and luxury estates in Belgravia and Mayfair.',
@@ -53,6 +55,7 @@ export const INITIAL_CLIENTS: Client[] = [
   },
   {
     id: 'tech-startup',
+    slug: 'tech-startup',
     name: 'Tech Startup',
     category: 'SaaS Launch Pad',
     bio: 'Next-generation developers building AI-assisted developer environments and high-performance server runtimes.',

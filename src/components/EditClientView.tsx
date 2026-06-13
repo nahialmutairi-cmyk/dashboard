@@ -22,6 +22,8 @@ interface EditClientViewProps {
 
 export default function EditClientView({ client, onSave, onDiscard, language }: EditClientViewProps) {
   const [name, setName] = useState(client.name);
+  const [slug, setSlug] = useState(client.slug || '');
+  const [slugError, setSlugError] = useState<string | null>(null);
   const [category, setCategory] = useState(client.category);
   const [bio, setBio] = useState(client.bio);
   const [avatar, setAvatar] = useState(client.avatar);
@@ -36,9 +38,19 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
   const t = translations[language];
   const isRtl = language === 'ar';
 
+  const handleSlugChange = (val: string) => {
+    const sanitized = val
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    setSlug(sanitized);
+    setSlugError(null);
+  };
+
   // Real-time modified client object helper to feed into the Preview screen
   const currentModifiedClient: Client = {
     ...client,
+    slug,
     name,
     category,
     bio,
@@ -115,9 +127,45 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
     );
   };
 
-  const handleSaveSubmit = (e: React.FormEvent) => {
+  const handleSaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(currentModifiedClient);
+    setSlugError(null);
+
+    const finalSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!finalSlug) {
+      setSlugError(isRtl ? 'اسم المستخدم مطلوب ولا يمكن تركه فارغاً.' : 'Username/slug is required and cannot be empty.');
+      return;
+    }
+
+    if (finalSlug === '-') {
+      setSlugError(isRtl ? 'اسم المستخدم لا يمكن أن يكون شرطة "-" فقط.' : 'Username/slug cannot be only "-".');
+      return;
+    }
+
+    const validRegex = /^[a-z0-9-]+$/;
+    if (!validRegex.test(finalSlug)) {
+      setSlugError(t.slugErrorFormat);
+      return;
+    }
+
+    // Validate slug uniqueness before saving!
+    try {
+      const response = await fetch(`/api/getPublicProfileBySlug?slug=${finalSlug}`);
+      if (response.ok) {
+        const existingData = await response.json();
+        if (existingData && existingData.id !== client.id) {
+          setSlugError(t.slugErrorExists);
+          return;
+        }
+      }
+    } catch (_) {
+      // Ignore network errors or offline
+    }
+
+    onSave({
+      ...currentModifiedClient,
+      slug: finalSlug
+    });
   };
 
   return (
@@ -168,6 +216,12 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
               <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
               <span>{t.profileInfoTitle}</span>
             </h3>
+
+            {slugError && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-xs font-semibold leading-relaxed mb-4">
+                {slugError}
+              </div>
+            )}
 
             <div className="flex flex-col md:flex-row gap-6 items-start">
               {/* Avatar upload Preview */}
@@ -228,6 +282,22 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
                     onChange={(e) => setName(e.target.value)}
                     className="w-full bg-[#0e0e0e] border border-zinc-800 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500 text-white"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 animate-pulse">
+                    {t.slugLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={slug}
+                    placeholder={t.slugPlaceholder}
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    className="w-full bg-[#0e0e0e] border border-zinc-800 rounded-lg p-2.5 text-sm focus:outline-none focus:border-blue-500 text-blue-300 font-mono"
+                  />
+                  <p className="text-[10px] text-zinc-500 font-semibold leading-tight mt-1">
+                    {isRtl ? 'رابط صفحة العميل العامة الجديد سيكون:' : 'Public link slug:'} <span className="text-blue-400 font-mono">/u/{slug || '...'}</span>
+                  </p>
                 </div>
 
                 <div>

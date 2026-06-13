@@ -29,6 +29,7 @@ export const handler: Handler = async (event, context) => {
 
       return {
         id: c.id,
+        slug: c.slug || '',
         name: c.name,
         category: c.category || '',
         bio: c.bio || '',

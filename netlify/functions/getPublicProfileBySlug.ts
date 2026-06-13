@@ -63,6 +63,7 @@ export const handler: Handler = async (event, context) => {
       },
       body: JSON.stringify({
         id: client.id,
+        slug: client.slug || '',
         name: client.name,
         category: client.category || '',
         bio: client.bio || '',

@@ -32,6 +32,8 @@ const DEFAULT_BANNERS = [
 
 export default function AddClientModal({ onClose, onAdd, language }: AddClientModalProps) {
   const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugError, setSlugError] = useState<string | null>(null);
   const [category, setCategory] = useState('');
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(DEFAULT_AVATARS[0]);
@@ -47,15 +49,58 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
   const t = translations[language];
   const isRtl = language === 'ar';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSlugChange = (val: string) => {
+    // Live sanitization: convert spaces to hyphens, force lowercase, and allow only lowercase english letters, numbers, and hyphens
+    const sanitized = val
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    setSlug(sanitized);
+    setSlugError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !category) return;
+
+    // Validate the slug
+    const finalSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!finalSlug) {
+      setSlugError(isRtl ? 'اسم المستخدم مطلوب ولا يمكن تركه فارغاً.' : 'Username/slug is required and cannot be empty.');
+      return;
+    }
+    
+    if (finalSlug === '-') {
+      setSlugError(isRtl ? 'اسم المستخدم لا يمكن أن يكون شرطة "-" فقط.' : 'Username/slug cannot be only "-".');
+      return;
+    }
+
+    // Allow only lowercase English letters, numbers, and hyphen, reject Arabic characters
+    const validRegex = /^[a-z0-9-]+$/;
+    if (!validRegex.test(finalSlug)) {
+      setSlugError(t.slugErrorFormat);
+      return;
+    }
+
+    // Validate slug uniqueness before saving!
+    // We can query the API to check if this slug is already in use
+    try {
+      const response = await fetch(`/api/getPublicProfileBySlug?slug=${finalSlug}`);
+      if (response.ok) {
+        // Find existing client with same slug
+        setSlugError(t.slugErrorExists);
+        return;
+      }
+    } catch (_) {
+      // Ignore network errors or offline, proceed to insert
+    }
 
     const finalAvatar = customAvatar.trim() || avatar;
     const finalBanner = customBanner.trim() || banner;
 
     const newClient: Client = {
-      id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      id: finalSlug, // The id matches the slug
+      slug: finalSlug,
       name,
       category,
       bio: bio || `${name} specialized in ${category}.`,
@@ -102,6 +147,12 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           
+          {slugError && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-xs font-semibold leading-relaxed">
+              {slugError}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Display Name */}
             <div className="space-y-1.5">
@@ -121,22 +172,43 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
               </div>
             </div>
 
-            {/* Role / Category */}
+            {/* Username / Public Link Slug */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
-                {t.roleSpecialtyLabel}
+                {t.slugLabel}
               </label>
               <div className="relative flex items-center rounded-lg border border-zinc-800 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 bg-[#0e0e0e] overflow-hidden">
-                <div className={`${isRtl ? 'pr-3 pl-1' : 'pl-3' } text-zinc-500`}><Sparkles className="w-4 h-4" /></div>
+                <div className={`${isRtl ? 'pr-3 pl-1' : 'pl-3' } text-zinc-500`}><Sparkles className="w-4 h-4 text-zinc-500" /></div>
                 <input
                   type="text"
                   required
-                  placeholder={isRtl ? "مثال: مصممة وصانعة محتوى" : "e.g. Creative & Content Strategist"}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-transparent border-none text-[#e5e2e1] text-sm focus:outline-none"
+                  placeholder={t.slugPlaceholder}
+                  value={slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-transparent border-none text-[#e5e2e1] text-sm focus:outline-none font-mono"
                 />
               </div>
+              <p className="text-[10px] text-zinc-500 font-semibold leading-tight">
+                {isRtl ? 'رابط الصفحة العامة سيكون:' : 'Public link slug:'} <span className="text-blue-400 font-mono">/u/{slug || '...'}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Role / Category */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+              {t.roleSpecialtyLabel}
+            </label>
+            <div className="relative flex items-center rounded-lg border border-zinc-800 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 bg-[#0e0e0e] overflow-hidden">
+              <div className={`${isRtl ? 'pr-3 pl-1' : 'pl-3' } text-zinc-500`}><Sparkles className="w-4 h-4" /></div>
+              <input
+                type="text"
+                required
+                placeholder={isRtl ? "مثال: مصممة وصانعة محتوى" : "e.g. Creative & Content Strategist"}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2.5 bg-transparent border-none text-[#e5e2e1] text-sm focus:outline-none"
+              />
             </div>
           </div>
 
