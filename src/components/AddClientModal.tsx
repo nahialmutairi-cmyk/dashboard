@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
-import { X, Plus, Sparkles, User, FileText, Image as ImageIcon, BarChart3 } from 'lucide-react';
+import { X, Plus, Sparkles, User, FileText, Image as ImageIcon, BarChart3, Upload } from 'lucide-react';
 import { Client } from '../types';
 import { translations } from '../translations';
+// Base64 file converter utility
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 interface AddClientModalProps {
   onClose: () => void;
@@ -31,6 +40,9 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
   const [clicks, setClicks] = useState('2400');
   const [customAvatar, setCustomAvatar] = useState('');
   const [customBanner, setCustomBanner] = useState('');
+  
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   const t = translations[language];
   const isRtl = language === 'ar';
@@ -170,13 +182,39 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
                 {t.orCustomUrl}
               </div>
             </div>
-            <input
-              type="text"
-              placeholder="https://example.com/avatar.jpg"
-              value={customAvatar}
-              onChange={(e) => setCustomAvatar(e.target.value)}
-              className="w-full p-2.5 bg-[#0e0e0e] border border-zinc-800 rounded-lg text-xs placeholder:text-zinc-650 text-[#e5e2e1] focus:outline-none focus:border-blue-500"
-            />
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder={isRtl ? "رابط خارجي https://..." : "e.g. https://example.com/avatar.jpg"}
+                value={customAvatar}
+                onChange={(e) => setCustomAvatar(e.target.value)}
+                className="flex-1 p-2.5 bg-[#0e0e0e] border border-zinc-800 rounded-lg text-xs placeholder:text-zinc-650 text-[#e5e2e1] focus:outline-none focus:border-blue-500"
+              />
+              <label className="shrink-0 bg-blue-600/10 hover:bg-blue-650 text-blue-400 hover:text-white border border-blue-500/25 px-4 rounded-lg text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploadingAvatar}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsUploadingAvatar(true);
+                    try {
+                      const url = await convertToBase64(file);
+                      setCustomAvatar(url);
+                      setAvatar(url);
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : 'Upload failed');
+                    } finally {
+                      setIsUploadingAvatar(false);
+                    }
+                  }}
+                />
+                <Upload className="w-3.5 h-3.5" />
+                <span>{isUploadingAvatar ? '...' : isRtl ? 'رفع' : 'Upload'}</span>
+              </label>
+            </div>
           </div>
 
           {/* Banner Options */}
@@ -204,13 +242,39 @@ export default function AddClientModal({ onClose, onAdd, language }: AddClientMo
                 {t.orCustomUrl}
               </div>
             </div>
-            <input
-              type="text"
-              placeholder="https://example.com/banner.jpg"
-              value={customBanner}
-              onChange={(e) => setCustomBanner(e.target.value)}
-              className="w-full p-2.5 bg-[#0e0e0e] border border-zinc-800 rounded-lg text-xs placeholder:text-zinc-650 text-[#e5e2e1] focus:outline-none focus:border-blue-500"
-            />
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder={isRtl ? "رابط خارجي https://..." : "e.g. https://example.com/banner.jpg"}
+                value={customBanner}
+                onChange={(e) => setCustomBanner(e.target.value)}
+                className="flex-1 p-2.5 bg-[#0e0e0e] border border-zinc-800 rounded-lg text-xs placeholder:text-zinc-650 text-[#e5e2e1] focus:outline-none focus:border-blue-500"
+              />
+              <label className="shrink-0 bg-blue-600/10 hover:bg-blue-650 text-blue-400 hover:text-white border border-blue-500/25 px-4 rounded-lg text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploadingBanner}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsUploadingBanner(true);
+                    try {
+                      const url = await convertToBase64(file);
+                      setCustomBanner(url);
+                      setBanner(url);
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : 'Upload failed');
+                    } finally {
+                      setIsUploadingBanner(false);
+                    }
+                  }}
+                />
+                <Upload className="w-3.5 h-3.5" />
+                <span>{isUploadingBanner ? '...' : isRtl ? 'رفع' : 'Upload'}</span>
+              </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -3,6 +3,15 @@ import { ArrowLeft, ArrowRight, Save, Trash2, Plus, Sparkles, AlertTriangle, Lin
 import { Client, PlatformLink, CustomLink } from '../types';
 import { translations } from '../translations';
 import ProfilePreviewView from './ProfilePreviewView';
+// Base64 file converter utility
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 interface EditClientViewProps {
   client: Client;
@@ -20,6 +29,9 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
   const [isPublicIndexed, setIsPublicIndexed] = useState(client.isPublicIndexed);
   const [platforms, setPlatforms] = useState<PlatformLink[]>([...client.platforms]);
   const [customLinks, setCustomLinks] = useState<CustomLink[]>([...client.customLinks]);
+  
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   
   const t = translations[language];
   const isRtl = language === 'ar';
@@ -160,16 +172,45 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
             <div className="flex flex-col md:flex-row gap-6 items-start">
               {/* Avatar upload Preview */}
               <div className="flex flex-col items-center gap-3 md:w-1/3">
-                <div className="relative group w-32 h-32 rounded-full border-2 border-dashed border-zinc-800 hover:border-blue-500 flex items-center justify-center overflow-hidden bg-zinc-900 transition-all cursor-pointer">
-                  <img
-                    alt="Profile Preview"
-                    src={avatar}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                <label className="relative group w-32 h-32 rounded-full border-2 border-dashed border-zinc-850 hover:border-blue-500 flex items-center justify-center overflow-hidden bg-zinc-900/60 hover:bg-zinc-900 transition-all cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploadingAvatar}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingAvatar(true);
+                      try {
+                        const url = await convertToBase64(file);
+                        setAvatar(url);
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : 'Upload failed');
+                      } finally {
+                        setIsUploadingAvatar(false);
+                      }
+                    }}
                   />
-                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ImageIcon className="w-5 h-5 text-white" />
-                  </div>
-                </div>
+                  {isUploadingAvatar ? (
+                    <div className="flex flex-col items-center gap-1.5 p-4 text-center">
+                      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Uploading...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <img
+                        alt="Profile Preview"
+                        src={avatar}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ImageIcon className="w-5 h-5 text-white" />
+                        <span className="text-[9px] text-zinc-300 font-bold uppercase tracking-wider mt-1.5">Upload</span>
+                      </div>
+                    </>
+                  )}
+                </label>
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider text-center">
                   {t.avatarPortrait}
                 </span>
@@ -230,8 +271,30 @@ export default function EditClientView({ client, onSave, onDiscard, language }: 
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  {t.bannerUrlLabel}
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 flex justify-between items-center">
+                  <span>{t.bannerUrlLabel}</span>
+                  <label className="text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase cursor-pointer flex items-center gap-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploadingBanner}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingBanner(true);
+                        try {
+                          const url = await convertToBase64(file);
+                          setBanner(url);
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : 'Upload failed');
+                        } finally {
+                          setIsUploadingBanner(false);
+                        }
+                      }}
+                    />
+                    <span>{isUploadingBanner ? 'Uploading...' : 'Upload File'}</span>
+                  </label>
                 </label>
                 <input
                   type="text"

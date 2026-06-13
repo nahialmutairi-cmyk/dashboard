@@ -218,7 +218,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
         </div>
         <div className="flex items-center gap-2 bg-blue-500/10 text-xs px-3 py-1 rounded-full text-blue-400 font-semibold border border-blue-500/10">
           <ExternalLink className="w-3.5 h-3.5" />
-          <span>mediadlandkw.netlify.app/profile/{client.id}</span>
+          <span>mediadlandkw.netlify.app/u/{client.id}</span>
         </div>
       </header>
 

@@ -8,7 +8,6 @@ import DashboardView from './components/DashboardView';
 import EditClientView from './components/EditClientView';
 import ProfilePreviewView from './components/ProfilePreviewView';
 import AddClientModal from './components/AddClientModal';
-
 export default function App() {
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('ml_admin_language') as 'en' | 'ar') || 'en';
@@ -18,17 +17,10 @@ export default function App() {
     return localStorage.getItem('ml_admin_logged_in') === 'true';
   });
 
-  const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('ml_admin_clients');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved clients, falling back to initial data', e);
-      }
-    }
-    return INITIAL_CLIENTS;
-  });
+  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
+  const [isLoadingClients, setIsLoadingClients] = useState<boolean>(true);
+  const [currentPublicClient, setCurrentPublicClient] = useState<Client | null>(null);
+  const [publicProfileError, setPublicProfileError] = useState<boolean>(false);
 
   // Current sub-view: 'dashboard' | 'edit' | 'preview' | 'settings' | 'account' | 'reports'
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -43,6 +35,12 @@ export default function App() {
     const searchParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
 
+    if (pathname.includes('/u/')) {
+      const parts = pathname.split('/u/');
+      if (parts[1]) {
+        return parts[1].split('?')[0].split('#')[0].replace(/\/$/, '');
+      }
+    }
     if (pathname.includes('/profile/')) {
       const parts = pathname.split('/profile/');
       if (parts[1]) {
@@ -65,7 +63,75 @@ export default function App() {
   const t = translations[language];
   const isRtl = language === 'ar';
 
-  // Sync clients with localStorage
+  // Load and sync clients on mount from local node rest service database or direct profile load
+  useEffect(() => {
+    if (directProfileId) {
+      setIsLoadingClients(true);
+      fetch(`/api/clients/${directProfileId}`)
+        .then(async (res) => {
+          if (!res.ok) {
+            setPublicProfileError(true);
+            return;
+          }
+          const data = await res.json();
+          if (data && data.status === 'active') {
+            setCurrentPublicClient(data);
+            
+            // Background profile visit tracking
+            fetch('/api/analytics', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                client_id: data.id,
+                action: 'visit',
+                link_type: 'profile'
+              })
+            }).catch(e => console.log('Analytics profile tracking event error', e));
+
+          } else {
+            setPublicProfileError(true);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch from DB on slug lookup:', err);
+          setPublicProfileError(true);
+        })
+        .finally(() => {
+          setIsLoadingClients(false);
+        });
+    } else {
+      // Fetch entire admin list campaign roster
+      setIsLoadingClients(true);
+      fetch('/api/clients')
+        .then(res => {
+          if (!res.ok) throw new Error('Bad network response in fetching roster');
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.length > 0) {
+            setClients(data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Backend unavailable, falling back to local storage cache', err);
+          const saved = localStorage.getItem('ml_admin_clients');
+          if (saved) {
+            try {
+              setClients(JSON.parse(saved));
+            } catch (e) {
+              setClients(INITIAL_CLIENTS);
+            }
+          } else {
+            setClients(INITIAL_CLIENTS);
+          }
+        })
+        .finally(() => {
+          setIsLoadingClients(false);
+        });
+    }
+  }, [directProfileId]);
+
+  // Sync clients with localStorage cache for offline/failure resilience
   useEffect(() => {
     localStorage.setItem('ml_admin_clients', JSON.stringify(clients));
   }, [clients]);
@@ -75,24 +141,30 @@ export default function App() {
     localStorage.setItem('ml_admin_language', language);
   }, [language]);
 
-  // Automatically increment visits on direct profile load
-  useEffect(() => {
-    if (directProfileId) {
-      setClients(prev => {
-        const match = prev.find(c => c.id === directProfileId);
-        if (match) {
-          return prev.map(c => c.id === directProfileId ? { ...c, visits: c.visits + 1 } : c);
-        }
-        return prev;
-      });
-    }
-  }, [directProfileId]);
+  // Handle OTA clink clicks analytics tracking
+  const handleTrackClick = (clientId: string, linkId?: string) => {
+    fetch('/api/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        action: 'click',
+        link_type: 'custom_link',
+        link_id: linkId || null
+      })
+    }).catch(e => console.log('Failed background click tracking', e));
 
-  // Handle CTA clink clicks analytics tracking
-  const handleTrackClick = (clientId: string) => {
-    setClients(prev =>
-      prev.map(c => c.id === clientId ? { ...c, clicks: c.clicks + 1 } : c)
-    );
+    setClients(prev => {
+      const match = prev.find(c => c.id === clientId);
+      if (match) {
+        return prev.map(c => c.id === clientId ? { ...c, clicks: c.clicks + 1 } : c);
+      }
+      return prev;
+    });
+
+    if (currentPublicClient && currentPublicClient.id === clientId) {
+      setCurrentPublicClient(prev => prev ? { ...prev, clicks: prev.clicks + 1 } : null);
+    }
   };
 
   // Auth helper
@@ -113,8 +185,27 @@ export default function App() {
   };
 
   // State actions
-  const handleAddClient = (newClient: Client) => {
-    setClients([newClient, ...clients]);
+  const handleAddClient = async (newClient: Client) => {
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClient)
+      });
+      if (!res.ok) throw new Error('Network response not ok');
+      
+      const dataRes = await fetch('/api/clients');
+      if (dataRes.ok) {
+        const list = await dataRes.json();
+        setClients(list);
+      } else {
+        setClients([newClient, ...clients]);
+      }
+    } catch (err) {
+      console.error('Failed to save client:', err);
+      alert(isRtl ? 'فشل حفظ العميل في قاعدة البيانات' : 'Failed to save client to Netlify PostgreSQL database.');
+      return;
+    }
     setIsAddModalOpen(false);
     triggerToast(translations[language].toastAddedClient);
   };
@@ -129,39 +220,89 @@ export default function App() {
     setActiveTab('preview');
   };
 
-  const handleSaveClient = (updatedClient: Client) => {
-    setClients(clients.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+  const handleSaveClient = async (updatedClient: Client) => {
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedClient)
+      });
+      if (!res.ok) throw new Error('Network response not ok');
+
+      const dataRes = await fetch('/api/clients');
+      if (dataRes.ok) {
+        const list = await dataRes.json();
+        setClients(list);
+      } else {
+        setClients(clients.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+      }
+    } catch (err) {
+      console.error('Failed to update client:', err);
+      alert(isRtl ? 'فشل تحديث العميل في قاعدة البيانات' : 'Failed to update client in Netlify PostgreSQL database.');
+      return;
+    }
     setEditingClient(null);
     setActiveTab('dashboard');
     triggerToast(translations[language].toastSavedClient);
   };
 
-  const handleDeleteClient = (clientId: string) => {
+  const handleDeleteClient = async (clientId: string) => {
     const clientToDelete = clients.find((c) => c.id === clientId);
     const confirmMsg = isRtl
       ? `هل أنت متأكد من رغبتك في حذف وإزالة الملف التعريفي للعميل: "${clientToDelete?.name || clientId}"؟`
       : `Are you sure you want to remove client campaign profile: "${clientToDelete?.name || clientId}"?`;
 
     if (window.confirm(confirmMsg)) {
-      setClients(clients.filter((c) => c.id !== clientId));
+      try {
+        const res = await fetch(`/api/clients/${clientId}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete client');
+
+        const dataRes = await fetch('/api/clients');
+        if (dataRes.ok) {
+          const list = await dataRes.json();
+          setClients(list);
+        } else {
+          setClients(clients.filter((c) => c.id !== clientId));
+        }
+      } catch (err) {
+        console.error('Failed to delete client:', err);
+        alert(isRtl ? 'فشل حذف العميل من قاعدة البيانات' : 'Failed to delete client from Netlify PostgreSQL database.');
+        return;
+      }
       triggerToast(translations[language].toastRemovedClient);
     }
   };
 
   // Render direct client public campaign profile if designated by URL path/hash/search
   if (directProfileId) {
-    const directClient = clients.find((c) => c.id === directProfileId);
-    if (directClient) {
+    if (isLoadingClients) {
+      return (
+        <div className="min-h-screen bg-[#070707] text-[#e5e2e1] flex flex-col justify-center items-center px-6 py-12 relative font-sans">
+          <div className="absolute inset-0 z-0 bg-radial-[circle_at_top,rgba(0,102,255,0.06)_0%,transparent_70%]" />
+          <div className="relative z-10 text-center space-y-4">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-sm font-medium text-zinc-400">
+              {isRtl ? 'جاري تحميل الملف التعريفي...' : 'Loading profile...'}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentPublicClient) {
       return (
         <ProfilePreviewView
-          client={directClient}
+          client={currentPublicClient}
           language={language}
           onBack={isLoggedIn ? () => {
             // Remove routing indicator from browser URL to clear refresh behavior
             window.history.pushState({}, '', '/');
             setDirectProfileId(null);
+            setCurrentPublicClient(null);
           } : undefined}
-          onLinkClick={() => handleTrackClick(directProfileId)}
+          onLinkClick={() => handleTrackClick(currentPublicClient.id)}
         />
       );
     } else {
