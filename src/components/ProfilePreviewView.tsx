@@ -8,17 +8,25 @@ interface ProfilePreviewViewProps {
   onBack?: () => void;
   isInsideEmbed?: boolean; // True if rendered side-by-side or as widget, false if independent full page
   language?: 'en' | 'ar';
+  onLinkClick?: () => void;
 }
 
-export default function ProfilePreviewView({ client, onBack, isInsideEmbed = false, language = 'en' }: ProfilePreviewViewProps) {
+export default function ProfilePreviewView({ client, onBack, isInsideEmbed = false, language = 'en', onLinkClick }: ProfilePreviewViewProps) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   const t = translations[language];
   const isRtl = language === 'ar';
 
   const handleLinkClick = (title: string, url: string) => {
-    setCopiedText(isRtl ? `تم النقر على: "${title}" (${url})` : `Clicked: "${title}" (${url})`);
-    setTimeout(() => setCopiedText(null), 3000);
+    setCopiedText(isRtl ? `تم التوجيه إلى: "${title}"` : `Redirecting to: "${title}"`);
+    if (onLinkClick) {
+      onLinkClick();
+    }
+    setTimeout(() => {
+      // Safely open the link in a new tab
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setCopiedText(null);
+    }, 1000);
   };
 
   // Helper to map type icons to Lucide components
@@ -210,7 +218,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
         </div>
         <div className="flex items-center gap-2 bg-blue-500/10 text-xs px-3 py-1 rounded-full text-blue-400 font-semibold border border-blue-500/10">
           <ExternalLink className="w-3.5 h-3.5" />
-          <span>medialand.agency/profile/{client.id}</span>
+          <span>mediadlandkw.netlify.app/profile/{client.id}</span>
         </div>
       </header>
 

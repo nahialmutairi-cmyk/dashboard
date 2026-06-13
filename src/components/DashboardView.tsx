@@ -53,7 +53,7 @@ export default function DashboardView({
   );
 
   const handleCopyLink = (clientId: string) => {
-    const linkText = `${window.location.origin}/profile/${clientId}`;
+    const linkText = `https://mediadlandkw.netlify.app/profile/${clientId}`;
     navigator.clipboard.writeText(linkText).then(() => {
       setCopiedClientId(clientId);
       setTimeout(() => setCopiedClientId(null), 2000);

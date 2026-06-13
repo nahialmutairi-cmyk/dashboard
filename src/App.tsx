@@ -37,6 +37,31 @@ export default function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // Parse path or search queries to check if we are directly loading a client landing page
+  const [directProfileId, setDirectProfileId] = useState<string | null>(() => {
+    const pathname = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+
+    if (pathname.includes('/profile/')) {
+      const parts = pathname.split('/profile/');
+      if (parts[1]) {
+        return parts[1].split('?')[0].split('#')[0].replace(/\/$/, '');
+      }
+    }
+    if (hash.startsWith('#/profile/')) {
+      return hash.replace('#/profile/', '');
+    }
+    if (searchParams.has('profile')) {
+      return searchParams.get('profile');
+    }
+    // Fallback: support top-level route if they deploy as index and append query e.g. mediadlandkw.netlify.app/?id=client
+    if (searchParams.has('id')) {
+      return searchParams.get('id');
+    }
+    return null;
+  });
+
   const t = translations[language];
   const isRtl = language === 'ar';
 
@@ -49,6 +74,26 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ml_admin_language', language);
   }, [language]);
+
+  // Automatically increment visits on direct profile load
+  useEffect(() => {
+    if (directProfileId) {
+      setClients(prev => {
+        const match = prev.find(c => c.id === directProfileId);
+        if (match) {
+          return prev.map(c => c.id === directProfileId ? { ...c, visits: c.visits + 1 } : c);
+        }
+        return prev;
+      });
+    }
+  }, [directProfileId]);
+
+  // Handle CTA clink clicks analytics tracking
+  const handleTrackClick = (clientId: string) => {
+    setClients(prev =>
+      prev.map(c => c.id === clientId ? { ...c, clicks: c.clicks + 1 } : c)
+    );
+  };
 
   // Auth helper
   const handleLoginSuccess = () => {
@@ -103,6 +148,71 @@ export default function App() {
     }
   };
 
+  // Render direct client public campaign profile if designated by URL path/hash/search
+  if (directProfileId) {
+    const directClient = clients.find((c) => c.id === directProfileId);
+    if (directClient) {
+      return (
+        <ProfilePreviewView
+          client={directClient}
+          language={language}
+          onBack={isLoggedIn ? () => {
+            // Remove routing indicator from browser URL to clear refresh behavior
+            window.history.pushState({}, '', '/');
+            setDirectProfileId(null);
+          } : undefined}
+          onLinkClick={() => handleTrackClick(directProfileId)}
+        />
+      );
+    } else {
+      // Sleek client not found page
+      return (
+        <div className="min-h-screen bg-[#070707] text-[#e5e2e1] flex flex-col justify-center items-center px-6 py-12 relative font-sans">
+          <div className="absolute inset-0 z-0 bg-radial-[circle_at_top,rgba(0,102,255,0.06)_0%,transparent_70%]" />
+          <div className="relative z-10 w-full max-w-sm glass-card p-8 rounded-2xl border border-zinc-800 text-center space-y-6">
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto text-xl font-bold animate-bounce">
+              !
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl font-black text-white leading-tight">
+                {isRtl ? 'لم يتم العثور على الملف' : 'Profile Not Found'}
+              </h1>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                {isRtl 
+                  ? 'رابط الحملة هذا غير متاح حالياً أو قد تم إزالته بواسطة إدارة الوكالة.' 
+                  : 'This campaign link is currently unavailable or has been removed by the agency admin.'}
+              </p>
+            </div>
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  window.history.pushState({}, '', '/');
+                  setDirectProfileId(null);
+                }}
+                className="w-full bg-zinc-900 border border-zinc-800 hover:bg-[#1a1a1a] text-zinc-400 hover:text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                {isRtl ? 'العودة للوحة الإدارة' : 'Return to Admin Dashboard'}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  window.history.pushState({}, '', '/');
+                  setDirectProfileId(null);
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                {isRtl ? 'تسجيل دخول المسؤول' : 'Admin Sign In'}
+              </button>
+            )}
+            <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+              Media Land
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
   // If user is not yet authenticated, render login panel
   if (!isLoggedIn) {
     return (
@@ -124,6 +234,7 @@ export default function App() {
           setPreviewingClient(null);
           setActiveTab('dashboard');
         }}
+        onLinkClick={() => handleTrackClick(previewingClient.id)}
       />
     );
   }
@@ -303,7 +414,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t.workspaceUrlLabel}</span>
-                  <input type="text" readOnly value="https://medialand.agency/campaign" className="w-full bg-[#0e0e0e] border border-zinc-850 p-3 rounded-lg text-xs font-mono text-zinc-400" />
+                  <input type="text" readOnly value="https://mediadlandkw.netlify.app" className="w-full bg-[#0e0e0e] border border-zinc-850 p-3 rounded-lg text-xs font-mono text-zinc-400" />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t.apiCacheLabel}</span>
