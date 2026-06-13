@@ -8,7 +8,7 @@ interface ProfilePreviewViewProps {
   onBack?: () => void;
   isInsideEmbed?: boolean; // True if rendered side-by-side or as widget, false if independent full page
   language?: 'en' | 'ar';
-  onLinkClick?: () => void;
+  onLinkClick?: (buttonTitle: string) => void;
   isPublicRoute?: boolean;
 }
 
@@ -21,7 +21,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
   const handleLinkClick = (title: string, url: string) => {
     setCopiedText(isRtl ? `تم التوجيه إلى: "${title}"` : `Redirecting to: "${title}"`);
     if (onLinkClick) {
-      onLinkClick();
+      onLinkClick(title);
     }
     setTimeout(() => {
       // Safely open the link in a new tab
@@ -115,7 +115,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
           {primaryPlatforms.map((p) => (
             <button
               key={p.id}
-              onClick={() => handleLinkClick(`${client.name} ${p.name}`, p.value)}
+              onClick={() => handleLinkClick(p.id === 'phone' ? 'Phone' : p.id === 'whatsapp' ? 'WhatsApp' : 'Email', p.value)}
               className={`glass-card hover:bg-[#1a1a1a] transition-all flex items-center justify-between p-4 rounded-xl w-full group cursor-pointer ${isRtl ? 'text-right' : 'text-left'}`}
             >
               <div className="flex items-center gap-4">
@@ -144,7 +144,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
             {socialPlatforms.map((p) => (
               <button
                 key={p.id}
-                onClick={() => handleLinkClick(`${client.name} on ${p.name}`, p.value)}
+                onClick={() => handleLinkClick(p.name, p.value)}
                 className="bg-zinc-900 border border-zinc-800/40 hover:bg-[#1a1a1a] transition-all flex flex-col items-center justify-center p-5 rounded-xl text-center group cursor-pointer"
               >
                 <div className="mb-2 transform group-hover:scale-110 transition-transform">{getIcon(p.id)}</div>
@@ -161,7 +161,7 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
       {mapsPlatform && mapsPlatform.enabled && mapsPlatform.value && (
         <div className="w-full mt-auto">
           <button
-            onClick={() => handleLinkClick(t.googleMapsLocation, mapsPlatform.value)}
+            onClick={() => handleLinkClick('Google Maps', mapsPlatform.value)}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-full py-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 glow-btn transition-all active:scale-[0.98] cursor-pointer"
           >
             <MapPin className="w-4 h-4 animate-bounce" />
@@ -171,9 +171,14 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
       )}
 
       {/* Footer and Credit line */}
-      <footer className="mt-8 pt-4 border-t border-zinc-900 w-full text-center text-zinc-600 flex items-center justify-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-xs">{t.poweredBy}</span>
-        <span className="text-xs font-extrabold text-[#e5e2e1] tracking-tight">Media Land</span>
+      <footer className="mt-8 pt-4 border-t border-zinc-900 w-full text-center text-zinc-600 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-center gap-1">
+          <span className="text-xs">{t.poweredBy}</span>
+          <span className="text-xs font-extrabold text-[#e5e2e1] tracking-tight">Media Land</span>
+        </div>
+        <p className="text-[10px] text-zinc-500 max-w-[280px] leading-relaxed text-center mx-auto">
+          {t.privacyNotice}
+        </p>
       </footer>
     </div>
   );

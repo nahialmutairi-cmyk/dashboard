@@ -76,6 +76,21 @@ export async function ensureDatabaseSetup(): Promise<pg.Pool> {
             action VARCHAR(255) NOT NULL,
             created_at TIMESTAMPTZ DEFAULT NOW()
           );
+
+          CREATE TABLE IF NOT EXISTS visitor_analytics (
+            id VARCHAR(255) PRIMARY KEY,
+            client_id VARCHAR(255) REFERENCES clients(id) ON DELETE CASCADE,
+            event_type VARCHAR(255) NOT NULL,
+            country VARCHAR(255),
+            city VARCHAR(255),
+            device_type VARCHAR(255),
+            browser VARCHAR(255),
+            os VARCHAR(255),
+            referrer VARCHAR(255),
+            anonymized_ip VARCHAR(255),
+            clicked_button VARCHAR(255),
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          );
         `);
         console.log('Database tables successfully verified/created.');
         

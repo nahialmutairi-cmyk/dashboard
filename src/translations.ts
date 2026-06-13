@@ -124,6 +124,18 @@ export interface TranslationSet {
   toastSelectToEdit: string;
   arabicLangToggle: string;
   englishLangToggle: string;
+  privacyNotice: string;
+  visitorAnalyticsTitle: string;
+  totalVisits: string;
+  totalClicks: string;
+  byCountry: string;
+  byDevice: string;
+  topReferrers: string;
+  buttonClicks: string;
+  last7Days: string;
+  closeBtn: string;
+  anonymizedNotice: string;
+  viewStatsBtn: string;
 }
 
 export const translations: Record<'en' | 'ar', TranslationSet> = {
@@ -242,7 +254,19 @@ export const translations: Record<'en' | 'ar', TranslationSet> = {
     toastCsvReady: "Performance CSV compiled and ready.",
     toastSelectToEdit: "Please create an agency client to edit first!",
     arabicLangToggle: "العربية",
-    englishLangToggle: "English"
+    englishLangToggle: "English",
+    privacyNotice: "We use privacy-friendly analytics to improve this profile experience.",
+    visitorAnalyticsTitle: "Privacy-Friendly Visitor Analytics",
+    totalVisits: "Total Lifetime Visits",
+    totalClicks: "Total Button Clicks",
+    byCountry: "Visits by Country",
+    byDevice: "Visits by Device Category",
+    topReferrers: "Traffic Referrals",
+    buttonClicks: "Button Clicks Breakdown",
+    last7Days: "Daily Trends (Last 7 Days)",
+    closeBtn: "Close Analytics",
+    anonymizedNotice: "Privacy Protected: IP addresses of your visitors are saved anonymized (e.g. 192.168.1.xxx) to prevent trackability.",
+    viewStatsBtn: "View Stats"
   },
   ar: {
     dashboardTab: "لوحة التحكم",
@@ -359,6 +383,18 @@ export const translations: Record<'en' | 'ar', TranslationSet> = {
     toastCsvReady: "تم تصدير كشف ملف CSV وهو جاهز للتحميل المباشر.",
     toastSelectToEdit: "فيرجى إنشاء عميل جديد للوكالة أولاً حتى تتمكن من التعديل عليه!",
     arabicLangToggle: "العربية",
-    englishLangToggle: "English"
+    englishLangToggle: "English",
+    privacyNotice: "نحن نستخدم تحليلات تحافظ على الخصوصية لتحسين تجربة هذه الصفحة.",
+    visitorAnalyticsTitle: "إحصائيات الزوار المحمية بالخصوصية",
+    totalVisits: "إجمالي زيارات الصفحة",
+    totalClicks: "إجمالي نقرات الأزرار",
+    byCountry: "الزيارات حسب الدول",
+    byDevice: "الزيارات حسب نوع الجهاز",
+    topReferrers: "مصادر إحالة الزوار",
+    buttonClicks: "تفصيل النقرات لكل زر",
+    last7Days: "مؤشر زيارات آخر 7 أيام",
+    closeBtn: "إغلاق نافذة الإحصائيات",
+    anonymizedNotice: "حماية الخصوصية: يتم تسجيل عناوين IP للزوار بشكل مجهول ومشوش جزئياً (مثل: 192.168.1.xxx) التزاماً بمعايير الأمان التام.",
+    viewStatsBtn: "تحليل الأداء"
   }
 };

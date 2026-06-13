@@ -9,6 +9,7 @@ interface DashboardViewProps {
   onEditClientClick: (client: Client) => void;
   onPreviewClientClick: (client: Client) => void;
   onDeleteClientClick: (clientId: string) => void;
+  onViewAnalyticsClick?: (client: Client) => void;
   language: 'en' | 'ar';
 }
 
@@ -18,6 +19,7 @@ export default function DashboardView({
   onEditClientClick,
   onPreviewClientClick,
   onDeleteClientClick,
+  onViewAnalyticsClick,
   language
 }: DashboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -233,15 +235,25 @@ export default function DashboardView({
                   </div>
 
                   {/* Statistics metrics Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-6 mt-auto">
-                    <div className="bg-[#181818]/80 border border-zinc-850 p-3 rounded-xl hover:border-zinc-800 transition-colors">
-                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{t.visitsLabel}</p>
-                      <p className="text-sm font-extrabold text-white mt-0.5">{formatNumber(client.visits)}</p>
+                  <div 
+                    onClick={() => onViewAnalyticsClick?.(client)}
+                    className="grid grid-cols-2 gap-3 mb-5 mt-auto cursor-pointer group/stats hover:opacity-95 select-none"
+                    title={isRtl ? 'اضغط لمعاينة تقرير الأداء التفصيلي للعميل' : 'Click to view high-fidelity performance metrics'}
+                  >
+                    <div className="bg-[#181818]/80 border border-zinc-850 hover:border-blue-500/40 p-3 rounded-xl transition-all duration-300 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-1 text-[8px] font-black text-blue-400 opacity-0 group-hover/stats:opacity-100 transition-opacity">
+                        ↗
+                      </div>
+                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">{t.visitsLabel}</p>
+                      <p className="text-sm font-extrabold text-white mt-1">{formatNumber(client.visits)}</p>
                     </div>
 
-                    <div className="bg-[#181818]/80 border border-zinc-850 p-3 rounded-xl hover:border-zinc-800 transition-colors">
-                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{t.clicksLabel}</p>
-                      <p className="text-sm font-extrabold text-white mt-0.5">{formatNumber(client.clicks)}</p>
+                    <div className="bg-[#181818]/80 border border-zinc-850 hover:border-indigo-500/40 p-3 rounded-xl transition-all duration-300 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-1 text-[8px] font-black text-indigo-400 opacity-0 group-hover/stats:opacity-100 transition-opacity">
+                        ↗
+                      </div>
+                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">{t.clicksLabel}</p>
+                      <p className="text-sm font-extrabold text-white mt-1">{formatNumber(client.clicks)}</p>
                     </div>
                   </div>
 
