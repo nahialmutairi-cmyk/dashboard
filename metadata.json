@@ -1,0 +1,6 @@
+{
+  "name": "Media Land Agency Admin",
+  "description": "Premium agency admin dashboard for client management and dynamic landing page generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
