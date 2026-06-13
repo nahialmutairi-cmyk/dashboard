@@ -1,1 +1,7 @@
-/*    /index.html   200
+/api/createClient              /.netlify/functions/createClient             200
+/api/updateClient              /.netlify/functions/updateClient             200
+/api/deleteClient              /.netlify/functions/deleteClient             200
+/api/getClients                /.netlify/functions/getClients               200
+/api/getPublicProfileBySlug    /.netlify/functions/getPublicProfileBySlug   200
+/api/analytics                 /.netlify/functions/analytics                200
+/*                             /index.html                                  200

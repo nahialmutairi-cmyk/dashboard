@@ -63,11 +63,11 @@ export default function App() {
   const t = translations[language];
   const isRtl = language === 'ar';
 
-  // Load and sync clients on mount from local node rest service database or direct profile load
+  // Load and sync clients on mount from local netlify action functions or cache
   useEffect(() => {
     if (directProfileId) {
       setIsLoadingClients(true);
-      fetch(`/api/clients/${directProfileId}`)
+      fetch(`/api/getPublicProfileBySlug?slug=${directProfileId}`)
         .then(async (res) => {
           if (!res.ok) {
             setPublicProfileError(true);
@@ -102,7 +102,7 @@ export default function App() {
     } else {
       // Fetch entire admin list campaign roster
       setIsLoadingClients(true);
-      fetch('/api/clients')
+      fetch('/api/getClients')
         .then(res => {
           if (!res.ok) throw new Error('Bad network response in fetching roster');
           return res.json();
@@ -187,14 +187,14 @@ export default function App() {
   // State actions
   const handleAddClient = async (newClient: Client) => {
     try {
-      const res = await fetch('/api/clients', {
+      const res = await fetch('/api/createClient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newClient)
       });
       if (!res.ok) throw new Error('Network response not ok');
       
-      const dataRes = await fetch('/api/clients');
+      const dataRes = await fetch('/api/getClients');
       if (dataRes.ok) {
         const list = await dataRes.json();
         setClients(list);
@@ -222,14 +222,14 @@ export default function App() {
 
   const handleSaveClient = async (updatedClient: Client) => {
     try {
-      const res = await fetch('/api/clients', {
+      const res = await fetch('/api/updateClient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedClient)
       });
       if (!res.ok) throw new Error('Network response not ok');
 
-      const dataRes = await fetch('/api/clients');
+      const dataRes = await fetch('/api/getClients');
       if (dataRes.ok) {
         const list = await dataRes.json();
         setClients(list);
@@ -254,12 +254,12 @@ export default function App() {
 
     if (window.confirm(confirmMsg)) {
       try {
-        const res = await fetch(`/api/clients/${clientId}`, {
+        const res = await fetch(`/api/deleteClient?id=${clientId}`, {
           method: 'DELETE'
         });
         if (!res.ok) throw new Error('Failed to delete client');
 
-        const dataRes = await fetch('/api/clients');
+        const dataRes = await fetch('/api/getClients');
         if (dataRes.ok) {
           const list = await dataRes.json();
           setClients(list);
