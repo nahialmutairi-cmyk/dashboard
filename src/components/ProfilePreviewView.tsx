@@ -26,7 +26,6 @@ interface ProfilePreviewViewProps {
 
 export default function ProfilePreviewView({ client, onBack, isInsideEmbed = false, language = 'en', onLinkClick, isPublicRoute = false }: ProfilePreviewViewProps) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
 
   const t = translations[language];
   const isRtl = language === 'ar';
@@ -52,6 +51,29 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
       }
     }
     return { countryCode: '+965', number: clean };
+  };
+
+  const getCleanedPhone = (c: Client) => {
+    const { countryCode: code, number: num } = parsePhone(c);
+    if (!code && !num) return '';
+    
+    // Combine country_code + phone_number
+    let combined = `${code}${num}`.trim();
+    
+    // Remove spaces, Remove dashes
+    combined = combined.replace(/[\s-]/g, '');
+    
+    // Remove duplicate plus signs
+    const hasPlus = combined.includes('+');
+    combined = combined.replace(/\+/g, '');
+    if (hasPlus) {
+      combined = '+' + combined;
+    }
+    
+    // Remove non-numeric & non-plus
+    combined = combined.replace(/[^0-9+]/g, '');
+    
+    return combined;
   };
 
   const handleLinkClick = (title: string, url: string) => {
@@ -153,7 +175,19 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
               key={p.id}
               onClick={() => {
                 if (p.id === 'phone') {
-                  setPhoneModalOpen(true);
+                  const cleaned = getCleanedPhone(client);
+                  const pureDigits = cleaned.replace(/\+/g, '');
+                  if (!pureDigits) {
+                    setCopiedText(isRtl ? 'رقم الهاتف غير متوفر.' : 'Phone number is not available.');
+                    setTimeout(() => setCopiedText(null), 3000);
+                    return;
+                  }
+                  
+                  if (onLinkClick) {
+                    onLinkClick('Call Now Direct');
+                  }
+                  
+                  window.location.href = `tel:${cleaned}`;
                 } else {
                   handleLinkClick(p.id === 'whatsapp' ? 'WhatsApp' : 'Email', p.value);
                 }
@@ -222,87 +256,6 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
           {t.privacyNotice}
         </p>
       </footer>
-
-      {/* Phone selector/dialing modal */}
-      {phoneModalOpen && (() => {
-        const { countryCode: phoneCode, number: phoneDigits } = parsePhone(client);
-        const fullNumber = `${phoneCode}${phoneDigits}`;
-        const matchedCountry = COUNTRIES_LIST.find(c => c.code === phoneCode) || { flag: '🇰🇼', nameAr: 'الكويت', nameEn: 'Kuwait', code: '+965' };
-        
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm" dir={isRtl ? 'rtl' : 'ltr'}>
-            <div className="w-full max-w-sm bg-[#121212] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-5 animate-in fade-in zoom-in duration-200">
-              
-              {/* Header */}
-              <div className="flex justify-between items-center border-b border-zinc-850 pb-3">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-blue-500 animate-pulse" />
-                  <h4 className="font-bold text-white text-sm">{isRtl ? 'تفاصيل الاتصال الهاتفي' : 'Phone Connection'}</h4>
-                </div>
-                <button
-                  onClick={() => setPhoneModalOpen(false)}
-                  className="text-zinc-500 hover:text-white transition-colors cursor-pointer text-xs"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="space-y-4">
-                <p className="text-zinc-400 text-xs text-center leading-relaxed">
-                  {isRtl ? 'يمكنك مكالمة العميل مباشرة أو نسخ الرقم لمشاركته.' : 'Copy the number or click Call to open dialer.'}
-                </p>
-
-                {/* Number Display Box */}
-                <div className="bg-[#0a0a0a] border border-zinc-850 rounded-xl p-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl select-none" title={isRtl ? matchedCountry.nameAr : matchedCountry.nameEn}>
-                      {matchedCountry.flag}
-                    </span>
-                    <div className="flex flex-col text-left">
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{isRtl ? 'رقم الاتصال المباشر' : 'Direct Line'}</span>
-                      <span className="text-sm font-semibold font-mono text-white tracking-wide" dir="ltr">
-                        {phoneCode} {phoneDigits}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold px-2 py-0.5 rounded-full uppercase font-mono">
-                    {matchedCountry.code}
-                  </span>
-                </div>
-              </div>
-
-              {/* Actions Grid */}
-              <div className="grid grid-cols-2 gap-3.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(fullNumber);
-                    setCopiedText(isRtl ? 'تم نسخ الرقم للحافظة!' : 'Copied number to clipboard!');
-                    setTimeout(() => setCopiedText(null), 2000);
-                  }}
-                  className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                >
-                  {isRtl ? 'نسخ الرقم' : 'Copy Number'}
-                </button>
-                <a
-                  href={`tel:${fullNumber}`}
-                  onClick={() => {
-                    if (onLinkClick) {
-                      onLinkClick('Call Now Direct');
-                    }
-                    setPhoneModalOpen(false);
-                  }}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 text-center flex items-center justify-center"
-                >
-                  {isRtl ? 'اتصال الآن' : 'Call Now'}
-                </a>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 
