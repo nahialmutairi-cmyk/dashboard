@@ -192,7 +192,14 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newClient)
       });
-      if (!res.ok) throw new Error('Network response not ok');
+      if (!res.ok) {
+        let errorMsg = 'Unknown error';
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errData.message || JSON.stringify(errData);
+        } catch (_) {}
+        throw new Error(errorMsg);
+      }
       
       const dataRes = await fetch('/api/getClients');
       if (dataRes.ok) {
@@ -201,9 +208,12 @@ export default function App() {
       } else {
         setClients([newClient, ...clients]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save client:', err);
-      alert(isRtl ? 'فشل حفظ العميل في قاعدة البيانات' : 'Failed to save client to Netlify PostgreSQL database.');
+      alert(isRtl 
+        ? `فشل حفظ العميل في قاعدة البيانات: ${err.message || err}`
+        : `Failed to save client to Netlify PostgreSQL database: ${err.message || err}`
+      );
       return;
     }
     setIsAddModalOpen(false);
@@ -227,7 +237,14 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedClient)
       });
-      if (!res.ok) throw new Error('Network response not ok');
+      if (!res.ok) {
+        let errorMsg = 'Unknown error';
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errData.message || JSON.stringify(errData);
+        } catch (_) {}
+        throw new Error(errorMsg);
+      }
 
       const dataRes = await fetch('/api/getClients');
       if (dataRes.ok) {
@@ -236,9 +253,12 @@ export default function App() {
       } else {
         setClients(clients.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update client:', err);
-      alert(isRtl ? 'فشل تحديث العميل في قاعدة البيانات' : 'Failed to update client in Netlify PostgreSQL database.');
+      alert(isRtl 
+        ? `فشل تحديث العميل في قاعدة البيانات: ${err.message || err}`
+        : `Failed to update client in Netlify PostgreSQL database: ${err.message || err}`
+      );
       return;
     }
     setEditingClient(null);

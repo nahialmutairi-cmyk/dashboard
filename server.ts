@@ -66,6 +66,18 @@ async function handleGetClients(req: any, res: any) {
   }
 }
 
+// Test health endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    const pool = await ensureDatabaseSetup();
+    await pool.query('SELECT 1');
+    res.json({ database: "connected" });
+  } catch (err: any) {
+    console.error('Database connection check error:', err.message);
+    res.status(500).json({ error: err.message || 'Database connection error' });
+  }
+});
+
 // 1. Fetch all client list
 app.get('/api/clients', handleGetClients);
 app.get('/api/getClients', handleGetClients);

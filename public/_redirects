@@ -4,4 +4,5 @@
 /api/getClients                /.netlify/functions/getClients               200
 /api/getPublicProfileBySlug    /.netlify/functions/getPublicProfileBySlug   200
 /api/analytics                 /.netlify/functions/analytics                200
+/api/health                    /.netlify/functions/health                   200
 /*                             /index.html                                  200
