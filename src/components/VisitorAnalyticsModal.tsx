@@ -26,7 +26,7 @@ export default function VisitorAnalyticsModal({ client, isOpen, onClose, languag
     setLoading(true);
     setError(null);
 
-    fetch(`/api/visitor-analytics/stats?client_id=${client.id}`)
+    fetch(`/api/getAnalytics?clientId=${client.id}`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(isRtl ? 'فشل تحميل بيانات المقاييس التحليلية' : 'Failed to fetch analytics payload');

@@ -401,9 +401,9 @@ async function handleVisitorAnalytics(req: any, res: any) {
 
 // Expose individual visitor analytics reports & aggregations
 async function handleGetVisitorStats(req: any, res: any) {
-  const { client_id } = req.query;
+  const client_id = req.query.clientId || req.query.client_id;
   if (!client_id) {
-    return res.status(400).json({ error: 'Missing client_id query parameter.' });
+    return res.status(400).json({ error: 'Missing clientId query parameter.' });
   }
 
   try {
@@ -654,6 +654,7 @@ async function handleGetVisitorStats(req: any, res: any) {
 app.post('/api/analytics', handleAnalytics);
 app.post('/api/visitor-analytics', handleVisitorAnalytics);
 app.get('/api/visitor-analytics/stats', handleGetVisitorStats);
+app.get('/api/getAnalytics', handleGetVisitorStats);
 
 
 // Start server listening & execute initial migrations

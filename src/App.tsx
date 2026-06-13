@@ -248,7 +248,7 @@ export default function App() {
       }
       if (!targetId) return;
       setReportLoading(true);
-      fetch(`/api/visitor-analytics/stats?client_id=${targetId}`)
+      fetch(`/api/getAnalytics?clientId=${targetId}`)
         .then(async (res) => {
           if (!res.ok) throw new Error('Fetch status not OK');
           const data = await res.json();
