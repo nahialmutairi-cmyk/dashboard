@@ -14,6 +14,7 @@ export default function LoginScreen({ onLoginSuccess, language, onLanguageChange
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const t = translations[language];
 
@@ -21,16 +22,26 @@ export default function LoginScreen({ onLoginSuccess, language, onLanguageChange
     e.preventDefault();
     if (!email || !password) return;
 
+    setErrorMsg(null);
     setIsLoading(true);
 
-    // Authentic dark command center authentication loader simulation
+    // Authentic dark command center authentication check
     setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        onLoginSuccess();
-      }, 800);
-    }, 1500);
+      if (password === 'password1234') {
+        setIsLoading(false);
+        setIsSuccess(true);
+        setTimeout(() => {
+          onLoginSuccess();
+        }, 800);
+      } else {
+        setIsLoading(false);
+        setErrorMsg(
+          language === 'ar'
+            ? 'خطأ: كلمة المرور المدخلة غير صحيحة.'
+            : 'Error: The administrative password entered is incorrect.'
+        );
+      }
+    }, 1200);
   };
 
   const isRtl = language === 'ar';
@@ -78,6 +89,12 @@ export default function LoginScreen({ onLoginSuccess, language, onLanguageChange
         <div className="bg-[#141414] border border-zinc-800/60 rounded-2xl p-8 shadow-2xl backdrop-blur-md">
           <form onSubmit={handleSubmit} className="space-y-6">
             
+            {errorMsg && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-semibold leading-relaxed animate-in fade-in duration-200">
+                {errorMsg}
+              </div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest block" htmlFor="email">

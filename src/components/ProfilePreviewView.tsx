@@ -9,9 +9,10 @@ interface ProfilePreviewViewProps {
   isInsideEmbed?: boolean; // True if rendered side-by-side or as widget, false if independent full page
   language?: 'en' | 'ar';
   onLinkClick?: () => void;
+  isPublicRoute?: boolean;
 }
 
-export default function ProfilePreviewView({ client, onBack, isInsideEmbed = false, language = 'en', onLinkClick }: ProfilePreviewViewProps) {
+export default function ProfilePreviewView({ client, onBack, isInsideEmbed = false, language = 'en', onLinkClick, isPublicRoute = false }: ProfilePreviewViewProps) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   const t = translations[language];
@@ -189,6 +190,17 @@ export default function ProfilePreviewView({ client, onBack, isInsideEmbed = fal
         
         {/* Device screen view */}
         <div className="flex-1 w-full bg-[#0d0d0d] rounded-[24px] overflow-y-auto relative pt-4 scrollbar-none custom-scrollbar">
+          {previewBody}
+        </div>
+      </div>
+    );
+  }
+
+  if (isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-[#070707] text-[#e5e2e1] flex flex-col relative w-full overflow-y-auto" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="absolute inset-0 z-0 bg-radial-[circle_at_top,rgba(0,102,255,0.06)_0%,transparent_70%]" />
+        <div className="relative z-10 w-full max-w-md mx-auto flex-1 flex flex-col bg-[#070707]">
           {previewBody}
         </div>
       </div>

@@ -23,7 +23,13 @@ export default function App() {
   const [publicProfileError, setPublicProfileError] = useState<boolean>(false);
 
   // Current sub-view: 'dashboard' | 'edit' | 'preview' | 'settings' | 'account' | 'reports'
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const pathname = window.location.pathname.toLowerCase();
+    if (pathname.includes('/settings')) return 'settings';
+    if (pathname.includes('/reports')) return 'reports';
+    if (pathname.includes('/account')) return 'account';
+    return 'dashboard';
+  });
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [previewingClient, setPreviewingClient] = useState<Client | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -37,6 +43,12 @@ export default function App() {
 
     if (pathname.includes('/u/')) {
       const parts = pathname.split('/u/');
+      if (parts[1]) {
+        return parts[1].split('?')[0].split('#')[0].replace(/\/$/, '');
+      }
+    }
+    if (pathname.includes('/client/')) {
+      const parts = pathname.split('/client/');
       if (parts[1]) {
         return parts[1].split('?')[0].split('#')[0].replace(/\/$/, '');
       }
@@ -140,6 +152,32 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ml_admin_language', language);
   }, [language]);
+
+  // Sync URL pushState for SPA views when logged in, or handle redirect back to root login page when unauthenticated
+  useEffect(() => {
+    const pathname = window.location.pathname.toLowerCase();
+    const isAdminPath = ['/admin', '/dashboard', '/clients', '/settings', '/reports', '/account'].some(p => pathname.includes(p));
+
+    if (!isLoggedIn) {
+      if (isAdminPath && pathname !== '/') {
+        // Redirect unauthorized request to root login portal
+        window.history.pushState({}, '', '/');
+      }
+    } else if (!directProfileId) {
+      // Synchronize address bar for active tab when logged in
+      if (activeTab === 'dashboard' && !pathname.includes('/dashboard') && !pathname.includes('/admin') && !pathname.includes('/clients')) {
+        window.history.pushState({}, '', '/dashboard');
+      } else if (activeTab === 'settings' && !pathname.includes('/settings')) {
+        window.history.pushState({}, '', '/settings');
+      } else if (activeTab === 'reports' && !pathname.includes('/reports')) {
+        window.history.pushState({}, '', '/reports');
+      } else if (activeTab === 'account' && !pathname.includes('/account')) {
+        window.history.pushState({}, '', '/account');
+      } else if (activeTab === 'edit' && !pathname.includes('/edit-campaign')) {
+        window.history.pushState({}, '', '/edit-campaign');
+      }
+    }
+  }, [activeTab, isLoggedIn, directProfileId]);
 
   // Handle OTA clink clicks analytics tracking
   const handleTrackClick = (clientId: string, linkId?: string) => {
@@ -316,12 +354,7 @@ export default function App() {
         <ProfilePreviewView
           client={currentPublicClient}
           language={language}
-          onBack={isLoggedIn ? () => {
-            // Remove routing indicator from browser URL to clear refresh behavior
-            window.history.pushState({}, '', '/');
-            setDirectProfileId(null);
-            setCurrentPublicClient(null);
-          } : undefined}
+          isPublicRoute={true}
           onLinkClick={() => handleTrackClick(currentPublicClient.id)}
         />
       );
@@ -344,28 +377,7 @@ export default function App() {
                   : 'This campaign link is currently unavailable or has been removed by the agency admin.'}
               </p>
             </div>
-            {isLoggedIn ? (
-              <button
-                onClick={() => {
-                  window.history.pushState({}, '', '/');
-                  setDirectProfileId(null);
-                }}
-                className="w-full bg-zinc-900 border border-zinc-800 hover:bg-[#1a1a1a] text-zinc-400 hover:text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
-              >
-                {isRtl ? 'العودة للوحة الإدارة' : 'Return to Admin Dashboard'}
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  window.history.pushState({}, '', '/');
-                  setDirectProfileId(null);
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
-              >
-                {isRtl ? 'تسجيل دخول المسؤول' : 'Admin Sign In'}
-              </button>
-            )}
-            <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+            <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold pt-4 border-t border-zinc-900/40">
               Media Land
             </div>
           </div>
